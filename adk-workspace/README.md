@@ -3,23 +3,6 @@
 Internal proof of concept built to the "Returns and Refunds ADK POC" assignment. StyleCart is fictional. All data,
 policy text and names are synthetic. The assistant reads and recommends. It never approves, rejects, pays or sends a refund.
 
-## Current status
-
-Last verified: 2026-11-11.
-
-| Part | Status |
-|---|---|
-| Offline build (SQLite, local embeddings): tests and evaluation | Passing: 57 tests, 26/26 evaluation checks |
-| BigQuery load (`retail_returns_poc` in project `project-b47dfb2c-17b6-4d03-83f`) | Loaded and verified. All 8 tables at expected row counts |
-| BigQuery queries from the tools | Verified. Key results match SQLite (paid total, review outcomes, search ranking) |
-| Gemini through Vertex AI (`gemini-3.8-flash`, location `global`) | Working. Agents call tools and cite records |
-| `/chat` with the assignment's example questions | 9 of 9 pass. Answers checked against tool output. Wording not graded |
-| Guard refusal (approve and send a refund) | Passes with no model call |
-| Live demo recording | Not done |
-| Gemini embeddings (semantic case search) | Not run. Default is the local lexical embedder |
-
-Run `/chat` with the settings in "Use Gemini" and "Use BigQuery" below. Last-run settings: `REQUEST_TIMEOUT_S=300`, `MAX_LLM_CALLS=20`.
-A full walkthrough for new readers is in [docs/END_TO_END_GUIDE.md](docs/END_TO_END_GUIDE.md).
 
 ## What is in this folder
 
@@ -75,7 +58,7 @@ Run all commands from `adk-workspace/`. Python 3.12.
 - `GET /returns/RET-0104`: return facts, refund records, and the review assessment. Works without an LLM.
 - `POST /chat` with `{"message": "...", "session_id": "demo-1"}`: answer, evidence (subagents called, tool calls, record IDs), guard flag, and model and prompt versions. Returns 503 until Gemini is configured.
 
-## Use BigQuery (needs your GCP project)
+## Use BigQuery
 
 1. Authenticate with a service account key file. Set `GOOGLE_APPLICATION_CREDENTIALS` to the path of the JSON key.
    Keep the key file outside the project folder and never commit it. (`gcloud` is optional.)
@@ -94,8 +77,7 @@ trust the Windows certificate store. Install it with `requirements.txt`. Do not 
 Working setup (verified): Gemini through Vertex AI, with the same service account.
 
 - `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT=<project>`, `GOOGLE_CLOUD_LOCATION=global`.
-- `GEMINI_MODEL=gemini-3.8-flash`. Some models are offered only in some locations. A 404 "not found" usually means the model
-  is not enabled for the project or not offered in that location. Check Vertex AI Studio for the exact model ID.
+- `GEMINI_MODEL=gemini-3.8-flash`. 
 - The service account needs `roles/aiplatform.user`, and the Vertex AI API must be enabled for the project.
 - Do not set `GOOGLE_API_KEY` alongside Vertex. A key that is not valid returns 403.
 - For longer questions set `REQUEST_TIMEOUT_S=300` and `MAX_LLM_CALLS=20`. Each model call takes about 3–5 seconds,
@@ -163,46 +145,3 @@ about 800 case embeddings and 23 policy chunks. The generator is seeded, so outp
 | Support case with a false instruction to ignore rules | CASE-0003 |
 | Two policy versions with different effective dates | SC_Returns_Policy_v1.pdf (to 2025-06-30), v2.pdf (from 2025-07-01) |
 
-## Limitations (read before demoing)
-
-- **Live checks are a sample, not a full test.** BigQuery and Gemini were run for the nine example questions and a set
-  of key tool checks. Answers were checked against tool output, not graded for wording. The rest of the 26 evaluation
-  checks run offline on SQLite only. Repeat the live checks after any change to data, prompts or model.
-- **Model latency.** A question takes roughly 30–180 seconds, because each model call takes several seconds and the
-  agents may call several tools. Use `REQUEST_TIMEOUT_S=300` and `MAX_LLM_CALLS=20`. This is not suitable for an
-  interactive chat without streaming or a faster model.
-- **Corporate network.** TLS to Google needs `truststore` (in `requirements.txt`) behind a proxy. Connection drops
-  through the proxy can cause one-off failures; rerun the question.
-- **Date-sensitive policy answers.** When a question gives no return date, the policy answer may cite a version without
-  saying why. Staff should check the version against the request date.
-- **Local embeddings are lexical, not semantic.** The default `local-hash` embedder matches shared words and stems but
-  not synonyms. "Zipper stopped working" will not match "broken zipper" through the vector path. Use
-  `EMBEDDING_PROVIDER=gemini` for real semantic search.
-- **Vector search runs in Python**, not in BigQuery `VECTOR_SEARCH`. It is fine for 800 cases, not for millions.
-- **The evaluation does not score answer quality.** `evaluation/run_eval.py` checks tools, rules, search and safety.
-  Scoring the wording of LLM answers needs Gemini and a human rubric. The assignment asks for at least 20 evaluation cases.
-  This report has 26, but they are tool-level, not end-to-end.
-- **The scripted agent test proves wiring, not model behaviour.** `tests/test_agent_flow.py` runs the real ADK graph with
-  a scripted model. It shows the root calling two subagents, and the subagents calling their tools. It does not show
-  that Gemini will choose the right tools.
-- **Guard is pattern-based.** It catches common approve, reject, send and pay phrasings. The safety property that
-  matters more is that no agent has a write tool. A paraphrase the regex misses still gets no action from the agents.
-- **Policy retrieval is over four short documents.** Chunking is by section and page, with no overlap.
-- **Refund SOP details are fictional.** Items such as the shipping-charge rule are invented for this POC.
-- **Not in scope:** AlloyDB, a frontend, a live payment service, and real customer data.
-- **Not production.** This is an internal POC. It is not a live client system. The in-memory session store loses
-  sessions on restart. There is no authentication on the API.
-
-## Requirements mapping (assignment section 14)
-
-| Deliverable | Status |
-|---|---|
-| Source code, README, dependency file | Done (`requirements.txt`, this README) |
-| BigQuery DDL, mock-data generator, load instructions | Done (`sql/ddl.sql`, generator, `load_bigquery.py`). Loaded and verified in project `project-b47dfb2c-17b6-4d03-83f`. |
-| Root agent, three subagents, working Python tools | Done. Tested with a scripted model, and run with `gemini-3.8-flash` through Vertex AI on the example questions. |
-| Policy documents, parser, chunks, retrieval | Done. Four documents. No taxonomy PDF. |
-| Keyword, vector and hybrid search, example results | Done. Results are in the `evaluation/results.md` run and in `tests/test_search.py`. |
-| 20+ evaluation cases and a results report | 26 cases, tool-level. `evaluation/results.md`. |
-| Architecture diagram and design choices | Above. |
-| Live demo or recording with 6 scenarios and 1 failure case | Questions run through `/chat` and documented in `docs/END_TO_END_GUIDE.md` (section 11). Recording not done. |
-| Known limitations | Above. |
