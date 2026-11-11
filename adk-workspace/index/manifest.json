@@ -1,0 +1,14 @@
+{
+  "built_at": "2026-11-08T13:14:11+00:00",
+  "embedding_model_version": "local-hash-512-v1",
+  "prompt_version": "root-v1|policy-v1|search-v1",
+  "policy_chunks": 23,
+  "case_embeddings": 800,
+  "source_sha256": {
+    "SC_Damaged_Item_SOP.pdf": "a4154e52f7d66f88848898fba7ba9d42dff38f0222130ccd496752609eecb1b9",
+    "SC_Refund_Processing_SOP.pdf": "b4bcdeeef42f97f5c27e76bf6e3d9baab7821e717726858fcd90cbaaa7f2e263",
+    "SC_Returns_Policy_v1.pdf": "88fcc00b9dafbb456c9e037c946860b4b266ae07489b2a221e971c7d1b621061",
+    "SC_Returns_Policy_v2.pdf": "3a7480a52a694cf0190a882562c43a29c3fbcdbaad9a058c6b804fd870c51eb6"
+  },
+  "backend": "sqlite"
+}
